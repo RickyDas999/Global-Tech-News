@@ -5,6 +5,8 @@ import NewsGrid from "./components/NewsGrid"
 import Footer from "./components/Footer"
 import { useDarkMode } from "./hooks/useDarkMode"
 import { fetchHackerNewsArticles } from "./api/hackerNews"
+import { fetchTechCrunchArticles } from "./api/techCrunch"
+import { fetchArsTechnicaArticles } from "./api/arsTechnica"
 
 const PLACEHOLDER_REPOS = Array.from({ length: 5 }, (_, i) => i)
 
@@ -16,9 +18,19 @@ function App() {
   const { theme, toggleTheme } = useDarkMode()
 
   useEffect(() => {
-    fetchHackerNewsArticles()
-      .then(setArticles)
-      .catch((error) => console.error("Failed to load Hacker News stories", error))
+    Promise.allSettled([fetchHackerNewsArticles(), fetchTechCrunchArticles(), fetchArsTechnicaArticles()])
+      .then((results) => {
+        const combined = results
+          .filter((result) => result.status === "fulfilled")
+          .flatMap((result) => result.value)
+          .sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt))
+
+        results
+          .filter((result) => result.status === "rejected")
+          .forEach((result) => console.error("A news source failed to load", result.reason))
+
+        setArticles(combined)
+      })
       .finally(() => setLoading(false))
   }, [])
 
