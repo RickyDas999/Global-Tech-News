@@ -7,6 +7,7 @@ import { useDarkMode } from "./hooks/useDarkMode"
 import { fetchHackerNewsArticles } from "./api/hackerNews"
 import { fetchTechCrunchArticles } from "./api/techCrunch"
 import { fetchArsTechnicaArticles } from "./api/arsTechnica"
+import { fetchTheVergeArticles } from "./api/theVerge"
 
 const PLACEHOLDER_REPOS = Array.from({ length: 5 }, (_, i) => i)
 
@@ -18,7 +19,12 @@ function App() {
   const { theme, toggleTheme } = useDarkMode()
 
   useEffect(() => {
-    Promise.allSettled([fetchHackerNewsArticles(), fetchTechCrunchArticles(), fetchArsTechnicaArticles()])
+    Promise.allSettled([
+      fetchHackerNewsArticles(),
+      fetchTechCrunchArticles(),
+      fetchArsTechnicaArticles(),
+      fetchTheVergeArticles(),
+    ])
       .then((results) => {
         const combined = results
           .filter((result) => result.status === "fulfilled")
