@@ -2,6 +2,7 @@ import { useState } from "react"
 import Header from "./components/Header"
 import CategoryFilter from "./components/CategoryFilter"
 import Footer from "./components/Footer"
+import { useDarkMode } from "./hooks/useDarkMode"
 
 const PLACEHOLDER_ARTICLES = Array.from({ length: 6 }, (_, i) => i)
 const PLACEHOLDER_REPOS = Array.from({ length: 5 }, (_, i) => i)
@@ -9,6 +10,7 @@ const PLACEHOLDER_REPOS = Array.from({ length: 5 }, (_, i) => i)
 function App() {
   const [searchQuery, setSearchQuery] = useState("")
   const [activeCategory, setActiveCategory] = useState("All")
+  const { theme, toggleTheme } = useDarkMode()
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -16,6 +18,8 @@ function App() {
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
         lastUpdatedLabel="Updated just now"
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
       <CategoryFilter activeCategory={activeCategory} onSelect={setActiveCategory} />
 
