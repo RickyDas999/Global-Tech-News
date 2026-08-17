@@ -4,6 +4,9 @@ import CategoryFilter from "./components/CategoryFilter"
 import NewsGrid from "./components/NewsGrid"
 import GitHubTrending from "./components/GitHubTrending"
 import Footer from "./components/Footer"
+import SkeletonCard from "./components/SkeletonCard"
+import EmptyState from "./components/EmptyState"
+import ErrorBanner from "./components/ErrorBanner"
 import { useDarkMode } from "./hooks/useDarkMode"
 import { useBookmarks } from "./hooks/useBookmarks"
 import { useInfiniteScroll } from "./hooks/useInfiniteScroll"
@@ -27,26 +30,31 @@ function App() {
   const [activeCategory, setActiveCategory] = useState("All")
   const [articles, setArticles] = useState([])
   const [sourceCount, setSourceCount] = useState(0)
+  const [failedSources, setFailedSources] = useState([])
   const [loading, setLoading] = useState(true)
   const [repositories, setRepositories] = useState([])
+  const [repoLoading, setRepoLoading] = useState(true)
+  const [repoError, setRepoError] = useState(false)
   const [bookmarkedOnly, setBookmarkedOnly] = useState(false)
   const { theme, toggleTheme } = useDarkMode()
   const { bookmarks, addBookmark, removeBookmark, isBookmarked } = useBookmarks()
 
   useEffect(() => {
     fetchAllArticles()
-      .then(({ articles: fetched, failedSources, sourceCount: succeeded }) => {
+      .then(({ articles: fetched, failedSources: failed, sourceCount: succeeded }) => {
         setArticles(fetched)
         setSourceCount(succeeded)
-        if (failedSources.length > 0) {
-          console.warn(`Unavailable sources: ${failedSources.join(", ")}`)
-        }
+        setFailedSources(failed)
       })
       .finally(() => setLoading(false))
 
     fetchTrendingRepositories()
       .then(setRepositories)
-      .catch((error) => console.error("Failed to load GitHub trending repositories", error))
+      .catch((error) => {
+        console.error("Failed to load GitHub trending repositories", error)
+        setRepoError(true)
+      })
+      .finally(() => setRepoLoading(false))
   }, [])
 
   function handleToggleBookmark(article) {
@@ -100,28 +108,48 @@ function App() {
             Trending News
           </h1>
           {loading ? (
-            <p className="text-sm text-neutral-500 dark:text-neutral-400">
-              Loading stories…
-            </p>
-          ) : visibleArticles.length === 0 ? (
-            <p className="text-sm text-neutral-500 dark:text-neutral-400">
-              {bookmarkedOnly ? "No bookmarks yet." : "No stories match your filters."}
-            </p>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {Array.from({ length: 8 }, (_, i) => (
+                <SkeletonCard key={i} />
+              ))}
+            </div>
+          ) : sourceCount === 0 ? (
+            <EmptyState
+              title="Unable to load news right now"
+              description="All sources failed to respond. Try refreshing below."
+            />
           ) : (
             <>
-              <NewsGrid
-                articles={paginatedArticles}
-                isBookmarked={isBookmarked}
-                onToggleBookmark={handleToggleBookmark}
-              />
-              {visibleCount < visibleArticles.length && (
-                <div ref={sentinelRef} className="h-1" aria-hidden="true" />
+              {failedSources.length > 0 && (
+                <ErrorBanner
+                  message={`${failedSources.length} source${failedSources.length > 1 ? "s" : ""} unavailable: ${failedSources.join(", ")}`}
+                />
+              )}
+              {visibleArticles.length === 0 ? (
+                <EmptyState
+                  title={bookmarkedOnly ? "No bookmarks yet." : "No stories match your filters."}
+                />
+              ) : (
+                <>
+                  <NewsGrid
+                    articles={paginatedArticles}
+                    isBookmarked={isBookmarked}
+                    onToggleBookmark={handleToggleBookmark}
+                  />
+                  {visibleCount < visibleArticles.length && (
+                    <div ref={sentinelRef} className="h-1" aria-hidden="true" />
+                  )}
+                </>
               )}
             </>
           )}
         </section>
 
-        <GitHubTrending repositories={visibleRepositories} />
+        <GitHubTrending
+          repositories={visibleRepositories}
+          loading={repoLoading}
+          error={repoError}
+        />
       </main>
 
       <Footer totalCount={articles.length} sourceCount={sourceCount} onRefresh={() => {}} />
