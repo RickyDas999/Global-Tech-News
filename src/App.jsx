@@ -8,6 +8,12 @@ import { fetchAllArticles } from "./api/newsService"
 
 const PLACEHOLDER_REPOS = Array.from({ length: 5 }, (_, i) => i)
 
+function matchesQuery(article, query) {
+  if (!query.trim()) return true
+  const haystack = `${article.title} ${article.description} ${article.source} ${article.categories.join(" ")}`.toLowerCase()
+  return haystack.includes(query.trim().toLowerCase())
+}
+
 function App() {
   const [searchQuery, setSearchQuery] = useState("")
   const [activeCategory, setActiveCategory] = useState("All")
@@ -28,10 +34,12 @@ function App() {
       .finally(() => setLoading(false))
   }, [])
 
-  const visibleArticles =
+  const categoryFiltered =
     activeCategory === "All"
       ? articles
       : articles.filter((article) => article.categories.includes(activeCategory))
+
+  const visibleArticles = categoryFiltered.filter((article) => matchesQuery(article, searchQuery))
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -55,7 +63,7 @@ function App() {
             </p>
           ) : visibleArticles.length === 0 ? (
             <p className="text-sm text-neutral-500 dark:text-neutral-400">
-              No stories match this category yet.
+              No stories match your filters.
             </p>
           ) : (
             <NewsGrid articles={visibleArticles} />
