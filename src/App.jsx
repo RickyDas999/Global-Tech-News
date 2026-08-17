@@ -6,6 +6,7 @@ import GitHubTrending from "./components/GitHubTrending"
 import Footer from "./components/Footer"
 import { useDarkMode } from "./hooks/useDarkMode"
 import { useBookmarks } from "./hooks/useBookmarks"
+import { useInfiniteScroll } from "./hooks/useInfiniteScroll"
 import { fetchAllArticles } from "./api/newsService"
 import { fetchTrendingRepositories } from "./api/githubTrending"
 
@@ -70,6 +71,12 @@ function App() {
   )
   const visibleRepositories = repositories.filter((repo) => matchesRepoQuery(repo, searchQuery))
 
+  const { visibleCount, sentinelRef } = useInfiniteScroll(
+    visibleArticles.length,
+    `${activeCategory}|${bookmarkedOnly}|${searchQuery}`,
+  )
+  const paginatedArticles = visibleArticles.slice(0, visibleCount)
+
   return (
     <div className="flex min-h-screen flex-col">
       <Header
@@ -101,11 +108,16 @@ function App() {
               {bookmarkedOnly ? "No bookmarks yet." : "No stories match your filters."}
             </p>
           ) : (
-            <NewsGrid
-              articles={visibleArticles}
-              isBookmarked={isBookmarked}
-              onToggleBookmark={handleToggleBookmark}
-            />
+            <>
+              <NewsGrid
+                articles={paginatedArticles}
+                isBookmarked={isBookmarked}
+                onToggleBookmark={handleToggleBookmark}
+              />
+              {visibleCount < visibleArticles.length && (
+                <div ref={sentinelRef} className="h-1" aria-hidden="true" />
+              )}
+            </>
           )}
         </section>
 
