@@ -2,15 +2,21 @@ import { useEffect, useState } from "react"
 import Header from "./components/Header"
 import CategoryFilter from "./components/CategoryFilter"
 import NewsGrid from "./components/NewsGrid"
+import GitHubTrending from "./components/GitHubTrending"
 import Footer from "./components/Footer"
 import { useDarkMode } from "./hooks/useDarkMode"
 import { fetchAllArticles } from "./api/newsService"
+import { fetchTrendingRepositories } from "./api/githubTrending"
 
-const PLACEHOLDER_REPOS = Array.from({ length: 5 }, (_, i) => i)
-
-function matchesQuery(article, query) {
+function matchesArticleQuery(article, query) {
   if (!query.trim()) return true
   const haystack = `${article.title} ${article.description} ${article.source} ${article.categories.join(" ")}`.toLowerCase()
+  return haystack.includes(query.trim().toLowerCase())
+}
+
+function matchesRepoQuery(repo, query) {
+  if (!query.trim()) return true
+  const haystack = `${repo.name} ${repo.fullName} ${repo.description} ${repo.language}`.toLowerCase()
   return haystack.includes(query.trim().toLowerCase())
 }
 
@@ -20,6 +26,7 @@ function App() {
   const [articles, setArticles] = useState([])
   const [sourceCount, setSourceCount] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [repositories, setRepositories] = useState([])
   const { theme, toggleTheme } = useDarkMode()
 
   useEffect(() => {
@@ -32,6 +39,10 @@ function App() {
         }
       })
       .finally(() => setLoading(false))
+
+    fetchTrendingRepositories()
+      .then(setRepositories)
+      .catch((error) => console.error("Failed to load GitHub trending repositories", error))
   }, [])
 
   const categoryFiltered =
@@ -39,7 +50,10 @@ function App() {
       ? articles
       : articles.filter((article) => article.categories.includes(activeCategory))
 
-  const visibleArticles = categoryFiltered.filter((article) => matchesQuery(article, searchQuery))
+  const visibleArticles = categoryFiltered.filter((article) =>
+    matchesArticleQuery(article, searchQuery),
+  )
+  const visibleRepositories = repositories.filter((repo) => matchesRepoQuery(repo, searchQuery))
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -70,22 +84,7 @@ function App() {
           )}
         </section>
 
-        <aside
-          aria-label="GitHub trending repositories"
-          className="lg:sticky lg:top-20 lg:w-[30%]"
-        >
-          <h2 className="mb-4 text-xl font-semibold text-neutral-900 dark:text-neutral-100">
-            GitHub Trending
-          </h2>
-          <div className="flex flex-col gap-3">
-            {PLACEHOLDER_REPOS.map((i) => (
-              <div
-                key={i}
-                className="h-24 rounded-xl border border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900"
-              />
-            ))}
-          </div>
-        </aside>
+        <GitHubTrending repositories={visibleRepositories} />
       </main>
 
       <Footer totalCount={articles.length} sourceCount={sourceCount} onRefresh={() => {}} />
