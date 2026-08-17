@@ -12,6 +12,7 @@ import { useBookmarks } from "./hooks/useBookmarks"
 import { useInfiniteScroll } from "./hooks/useInfiniteScroll"
 import { fetchAllArticles } from "./api/newsService"
 import { fetchTrendingRepositories } from "./api/githubTrending"
+import { formatRelativeTime } from "./utils/formatRelativeTime"
 
 function matchesArticleQuery(article, query) {
   if (!query.trim()) return true
@@ -36,26 +37,55 @@ function App() {
   const [repoLoading, setRepoLoading] = useState(true)
   const [repoError, setRepoError] = useState(false)
   const [bookmarkedOnly, setBookmarkedOnly] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState(null)
+  const [refreshing, setRefreshing] = useState(false)
+  const [refreshTick, setRefreshTick] = useState(0)
+  const [, forceClockTick] = useState(0)
   const { theme, toggleTheme } = useDarkMode()
   const { bookmarks, addBookmark, removeBookmark, isBookmarked } = useBookmarks()
 
-  useEffect(() => {
-    fetchAllArticles()
-      .then(({ articles: fetched, failedSources: failed, sourceCount: succeeded }) => {
-        setArticles(fetched)
-        setSourceCount(succeeded)
-        setFailedSources(failed)
-      })
-      .finally(() => setLoading(false))
+  async function loadNews() {
+    const { articles: fetched, failedSources: failed, sourceCount: succeeded } =
+      await fetchAllArticles()
+    setArticles(fetched)
+    setSourceCount(succeeded)
+    setFailedSources(failed)
+  }
 
-    fetchTrendingRepositories()
-      .then(setRepositories)
-      .catch((error) => {
-        console.error("Failed to load GitHub trending repositories", error)
-        setRepoError(true)
-      })
-      .finally(() => setRepoLoading(false))
+  async function loadRepos() {
+    try {
+      const repos = await fetchTrendingRepositories()
+      setRepositories(repos)
+      setRepoError(false)
+    } catch (error) {
+      console.error("Failed to load GitHub trending repositories", error)
+      setRepoError(true)
+    }
+  }
+
+  useEffect(() => {
+    Promise.all([
+      loadNews().finally(() => setLoading(false)),
+      loadRepos().finally(() => setRepoLoading(false)),
+    ]).then(() => setLastUpdated(new Date()))
   }, [])
+
+  // Keeps the header's "Updated Xm ago" label fresh without waiting for
+  // some unrelated re-render to happen to trigger it.
+  useEffect(() => {
+    const interval = setInterval(() => forceClockTick((tick) => tick + 1), 60000)
+    return () => clearInterval(interval)
+  }, [])
+
+  function handleRefresh() {
+    setRefreshing(true)
+    Promise.all([loadNews(), loadRepos()])
+      .then(() => {
+        setLastUpdated(new Date())
+        setRefreshTick((tick) => tick + 1)
+      })
+      .finally(() => setRefreshing(false))
+  }
 
   function handleToggleBookmark(article) {
     if (isBookmarked(article.id)) {
@@ -81,16 +111,20 @@ function App() {
 
   const { visibleCount, sentinelRef } = useInfiniteScroll(
     visibleArticles.length,
-    `${activeCategory}|${bookmarkedOnly}|${searchQuery}`,
+    `${activeCategory}|${bookmarkedOnly}|${searchQuery}|${refreshTick}`,
   )
   const paginatedArticles = visibleArticles.slice(0, visibleCount)
+
+  const lastUpdatedLabel = lastUpdated
+    ? `Updated ${formatRelativeTime(lastUpdated.toISOString())}`
+    : "Updating…"
 
   return (
     <div className="flex min-h-screen flex-col">
       <Header
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
-        lastUpdatedLabel="Updated just now"
+        lastUpdatedLabel={lastUpdatedLabel}
         theme={theme}
         onToggleTheme={toggleTheme}
       />
@@ -152,7 +186,12 @@ function App() {
         />
       </main>
 
-      <Footer totalCount={articles.length} sourceCount={sourceCount} onRefresh={() => {}} />
+      <Footer
+        totalCount={articles.length}
+        sourceCount={sourceCount}
+        onRefresh={handleRefresh}
+        refreshing={refreshing}
+      />
     </div>
   )
 }
