@@ -4,10 +4,7 @@ import CategoryFilter from "./components/CategoryFilter"
 import NewsGrid from "./components/NewsGrid"
 import Footer from "./components/Footer"
 import { useDarkMode } from "./hooks/useDarkMode"
-import { fetchHackerNewsArticles } from "./api/hackerNews"
-import { fetchTechCrunchArticles } from "./api/techCrunch"
-import { fetchArsTechnicaArticles } from "./api/arsTechnica"
-import { fetchTheVergeArticles } from "./api/theVerge"
+import { fetchAllArticles } from "./api/newsService"
 
 const PLACEHOLDER_REPOS = Array.from({ length: 5 }, (_, i) => i)
 
@@ -15,32 +12,21 @@ function App() {
   const [searchQuery, setSearchQuery] = useState("")
   const [activeCategory, setActiveCategory] = useState("All")
   const [articles, setArticles] = useState([])
+  const [sourceCount, setSourceCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const { theme, toggleTheme } = useDarkMode()
 
   useEffect(() => {
-    Promise.allSettled([
-      fetchHackerNewsArticles(),
-      fetchTechCrunchArticles(),
-      fetchArsTechnicaArticles(),
-      fetchTheVergeArticles(),
-    ])
-      .then((results) => {
-        const combined = results
-          .filter((result) => result.status === "fulfilled")
-          .flatMap((result) => result.value)
-          .sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt))
-
-        results
-          .filter((result) => result.status === "rejected")
-          .forEach((result) => console.error("A news source failed to load", result.reason))
-
-        setArticles(combined)
+    fetchAllArticles()
+      .then(({ articles: fetched, failedSources, sourceCount: succeeded }) => {
+        setArticles(fetched)
+        setSourceCount(succeeded)
+        if (failedSources.length > 0) {
+          console.warn(`Unavailable sources: ${failedSources.join(", ")}`)
+        }
       })
       .finally(() => setLoading(false))
   }, [])
-
-  const sourceCount = new Set(articles.map((article) => article.source)).size
 
   return (
     <div className="flex min-h-screen flex-col">
