@@ -28,6 +28,11 @@ function App() {
       .finally(() => setLoading(false))
   }, [])
 
+  const visibleArticles =
+    activeCategory === "All"
+      ? articles
+      : articles.filter((article) => article.categories.includes(activeCategory))
+
   return (
     <div className="flex min-h-screen flex-col">
       <Header
@@ -48,8 +53,12 @@ function App() {
             <p className="text-sm text-neutral-500 dark:text-neutral-400">
               Loading stories…
             </p>
+          ) : visibleArticles.length === 0 ? (
+            <p className="text-sm text-neutral-500 dark:text-neutral-400">
+              No stories match this category yet.
+            </p>
           ) : (
-            <NewsGrid articles={articles} />
+            <NewsGrid articles={visibleArticles} />
           )}
         </section>
 

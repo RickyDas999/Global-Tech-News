@@ -2,6 +2,7 @@ import { fetchHackerNewsArticles } from "./hackerNews"
 import { fetchTechCrunchArticles } from "./techCrunch"
 import { fetchArsTechnicaArticles } from "./arsTechnica"
 import { fetchTheVergeArticles } from "./theVerge"
+import { categorizeArticle } from "../utils/categorizeArticle"
 
 const SOURCES = [
   { name: "Hacker News", fetcher: fetchHackerNewsArticles },
@@ -53,6 +54,7 @@ export async function fetchAllArticles() {
   const articles = settled
     .filter((result) => result.status === "fulfilled")
     .flatMap((result) => result.value)
+    .map((article) => ({ ...article, categories: categorizeArticle(article) }))
 
   const failedSources = settled
     .map((result, index) => ({ result, name: SOURCES[index].name }))
