@@ -11,6 +11,7 @@ function GitHubCard({ repo }) {
       href={url}
       target="_blank"
       rel="noopener noreferrer"
+      aria-label={`${fullName} on GitHub`}
       className="block rounded-xl border border-neutral-200 bg-white p-4 transition-shadow hover:shadow-md dark:border-neutral-800 dark:bg-neutral-900"
     >
       <p className="truncate text-sm font-semibold text-neutral-900 dark:text-neutral-100">

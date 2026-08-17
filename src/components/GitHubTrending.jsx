@@ -3,7 +3,7 @@ import EmptyState from "./EmptyState"
 
 function RepoSkeleton() {
   return (
-    <div className="h-24 animate-pulse rounded-xl border border-neutral-200 bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-800" />
+    <div className="h-24 animate-pulse rounded-xl border border-neutral-200 bg-neutral-100 motion-reduce:animate-none dark:border-neutral-800 dark:bg-neutral-800" />
   )
 }
 

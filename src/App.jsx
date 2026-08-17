@@ -138,9 +138,9 @@ function App() {
 
       <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-8 px-4 py-6 lg:flex-row lg:items-start">
         <section aria-label="Trending news" className="lg:w-[70%]">
-          <h1 className="mb-4 text-xl font-semibold text-neutral-900 dark:text-neutral-100">
+          <h2 className="mb-4 text-xl font-semibold text-neutral-900 dark:text-neutral-100">
             Trending News
-          </h1>
+          </h2>
           {loading ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {Array.from({ length: 8 }, (_, i) => (

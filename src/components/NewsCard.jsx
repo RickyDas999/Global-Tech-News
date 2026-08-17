@@ -57,6 +57,7 @@ function NewsCard({ article, isBookmarked, onToggleBookmark }) {
             href={url}
             target="_blank"
             rel="noopener noreferrer"
+            aria-label={`Read: ${title}`}
             className="text-sm font-medium text-neutral-900 hover:underline dark:text-neutral-100"
           >
             Read →
