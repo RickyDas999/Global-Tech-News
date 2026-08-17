@@ -5,6 +5,7 @@ import NewsGrid from "./components/NewsGrid"
 import GitHubTrending from "./components/GitHubTrending"
 import Footer from "./components/Footer"
 import { useDarkMode } from "./hooks/useDarkMode"
+import { useBookmarks } from "./hooks/useBookmarks"
 import { fetchAllArticles } from "./api/newsService"
 import { fetchTrendingRepositories } from "./api/githubTrending"
 
@@ -27,7 +28,9 @@ function App() {
   const [sourceCount, setSourceCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [repositories, setRepositories] = useState([])
+  const [bookmarkedOnly, setBookmarkedOnly] = useState(false)
   const { theme, toggleTheme } = useDarkMode()
+  const { bookmarks, addBookmark, removeBookmark, isBookmarked } = useBookmarks()
 
   useEffect(() => {
     fetchAllArticles()
@@ -45,12 +48,24 @@ function App() {
       .catch((error) => console.error("Failed to load GitHub trending repositories", error))
   }, [])
 
+  function handleToggleBookmark(article) {
+    if (isBookmarked(article.id)) {
+      removeBookmark(article.id)
+    } else {
+      addBookmark(article)
+    }
+  }
+
   const categoryFiltered =
     activeCategory === "All"
       ? articles
       : articles.filter((article) => article.categories.includes(activeCategory))
 
-  const visibleArticles = categoryFiltered.filter((article) =>
+  const bookmarkFiltered = bookmarkedOnly
+    ? categoryFiltered.filter((article) => isBookmarked(article.id))
+    : categoryFiltered
+
+  const visibleArticles = bookmarkFiltered.filter((article) =>
     matchesArticleQuery(article, searchQuery),
   )
   const visibleRepositories = repositories.filter((repo) => matchesRepoQuery(repo, searchQuery))
@@ -64,7 +79,13 @@ function App() {
         theme={theme}
         onToggleTheme={toggleTheme}
       />
-      <CategoryFilter activeCategory={activeCategory} onSelect={setActiveCategory} />
+      <CategoryFilter
+        activeCategory={activeCategory}
+        onSelect={setActiveCategory}
+        bookmarkedOnly={bookmarkedOnly}
+        onToggleBookmarkedOnly={() => setBookmarkedOnly((current) => !current)}
+        bookmarkCount={bookmarks.length}
+      />
 
       <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-8 px-4 py-6 lg:flex-row lg:items-start">
         <section aria-label="Trending news" className="lg:w-[70%]">
@@ -77,10 +98,14 @@ function App() {
             </p>
           ) : visibleArticles.length === 0 ? (
             <p className="text-sm text-neutral-500 dark:text-neutral-400">
-              No stories match your filters.
+              {bookmarkedOnly ? "No bookmarks yet." : "No stories match your filters."}
             </p>
           ) : (
-            <NewsGrid articles={visibleArticles} />
+            <NewsGrid
+              articles={visibleArticles}
+              isBookmarked={isBookmarked}
+              onToggleBookmark={handleToggleBookmark}
+            />
           )}
         </section>
 

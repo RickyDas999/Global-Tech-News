@@ -1,6 +1,7 @@
 import { formatRelativeTime } from "../utils/formatRelativeTime"
+import BookmarkButton from "./BookmarkButton"
 
-function NewsCard({ article }) {
+function NewsCard({ article, isBookmarked, onToggleBookmark }) {
   const { title, url, source, publishedAt, description, image, categories, readingTime } =
     article
 
@@ -50,13 +51,7 @@ function NewsCard({ article }) {
         )}
 
         <div className="mt-auto flex items-center justify-between pt-2">
-          <button
-            type="button"
-            aria-label="Bookmark this article"
-            className="flex size-8 items-center justify-center rounded-lg border border-neutral-200 text-sm hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-800"
-          >
-            ☆
-          </button>
+          <BookmarkButton isBookmarked={isBookmarked} onToggle={onToggleBookmark} />
 
           <a
             href={url}
